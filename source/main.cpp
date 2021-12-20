@@ -10,124 +10,20 @@
 #include <math.h>
 #include <cstdint>
 
+#include "entities.h"
+
 #define SCREEN_WIDTH 400 //320
 #define SCREEN_HEIGHT 240
-
-#define SCREEN_TO_WORLD_WIDTH 2.3f
-#define SCREEN_TO_WORLD_HEIGHT 18.0f
 #define PIXEL_TO_METER 1.7f
 
-enum _moveState {
-    MS_STOP,
-    MS_LEFT,
-    MS_RIGHT,
-};
-
-enum _jumpState {
-    JS_JUMP,
-    JS_GROUND,
-};
-class Entity{
-    public:
-        std::string tag;
-        virtual void startContact(){}
-        virtual void endContact(){}
-};
-
-class Sprite{
-public:
-    C2D_Sprite spr;
-    float width;
-    float height;
-};
-
-class Treasure : public Entity{
-    public:
-        Sprite spr;
-        Sprite openspr;
-        b2Body* body;
-        Sprite content;
-        int hasCollided = 0;
-        void startContact(){
-            spr = openspr;
-            hasCollided = 1;
-        }
-        void endContact(){
-            hasCollided = 1;
-        }
-        void render(){
-            b2Vec2 pos = body->GetPosition();
-            C2D_SpriteSetPos(&spr.spr, pos.x, pos.y);
-            C2D_DrawSprite(&spr.spr);
-        }
-};
-
-class Platform : public Entity{
-public:
-    float width;
-    float height;
-    b2Body* body;
-    int spritenum;
-    // TODO: dynamic way to initialize
-    Sprite sprites[32];
-    Platform(){}
-    Platform(float w, float h, Sprite s){ 
-        width = w;
-        height=h;
-        spritenum = ceil(width*PIXEL_TO_METER/s.width)+1;
-        for(int i=0; i<spritenum;i++) {
-            memcpy(&sprites[i].spr, &s.spr, sizeof(C2D_Sprite));
-            sprites[i].width = s.width;
-            sprites[i].height = s.height;
-        }
-    }
-    void render(){
-        b2Vec2 pos = body->GetPosition();
-        for(int i =0;i<spritenum;i++) {
-            C2D_SpriteSetPos(&sprites[i].spr, pos.x-width*PIXEL_TO_METER/2+sprites[i].width*i, pos.y);
-            C2D_DrawSprite(&sprites[i].spr);
-        }
-        //C2D_DrawRectSolid(pos.x, pos.y, 0.5, width*PIXEL_TO_METER, height, C2D_Color32f(1,0,0,1));
-    }
-};
-
-class Player : public Entity{
-public:
-    _jumpState jumpstate;
-    float width;
-    float height;
-    b2Body* body;
-    C2D_Sprite sprite;
-    int maxJumps = 2;
-    int currentJumps =0;
-    void startContact() {
-        jumpstate = JS_GROUND;
-        currentJumps = 0;
-    }
-    void endContact(){
-        jumpstate = JS_JUMP;
-    }
-};
 class ContactListener : public b2ContactListener {
     void BeginContact(b2Contact* contact) {
         uintptr_t bodyUserData = contact->GetFixtureA()->GetBody()->GetUserData().pointer;
         if ( bodyUserData ) {
-            /*std::string tag = static_cast<Entity*>( reinterpret_cast<void*>(bodyUserData) )->tag;
-            if(tag.compare("player")==0)
-                static_cast<Player*>( reinterpret_cast<void*>(bodyUserData) )->startContact();
-            if(tag.compare("treasure")==0)
-                static_cast<Treasure*>( reinterpret_cast<void*>(bodyUserData) )->startContact();
-            */
             static_cast<Entity*>( reinterpret_cast<void*>(bodyUserData) )->startContact();
         }
         bodyUserData = contact->GetFixtureB()->GetBody()->GetUserData().pointer;
         if ( bodyUserData ) {
-            /*std::string tag = static_cast<Entity*>( reinterpret_cast<void*>(bodyUserData) )->tag;
-            if(tag.compare("player")==0)
-                static_cast<Player*>( reinterpret_cast<void*>(bodyUserData) )->startContact();
-            if(tag.compare("treasure")==0)
-                static_cast<Treasure*>( reinterpret_cast<void*>(bodyUserData) )->startContact();
-            */
             static_cast<Entity*>( reinterpret_cast<void*>(bodyUserData) )->startContact();
         }
     }
@@ -155,6 +51,7 @@ static Sprite pinkplatformspr;
 static Sprite mountainbgspr;
 static Sprite treasure_closed;
 static Sprite treasure_open;
+static Sprite heartspr;
 static void initSprites() 
 {
     Player* p = &player;
@@ -176,6 +73,8 @@ static void initSprites()
     
     C2D_SpriteFromSheet(&treasure_closed.spr, spritesheet, 6);
     C2D_SpriteFromSheet(&treasure_open.spr, spritesheet, 7);
+
+    C2D_SpriteFromSheet(&heartspr.spr, spritesheet, 8);
 }
 
 static void movesprites()
@@ -216,6 +115,7 @@ Treasure createTreasure(std::unique_ptr<b2World> &world, float x, float y)
     groundBody->GetUserData().pointer = reinterpret_cast<std::uintptr_t>(&tres);
 
     tres.body = groundBody;
+    tres.content = heartspr; 
     tres.tag = "treasure";
     return tres;
 }
@@ -297,7 +197,7 @@ int main(int argc, char** argv)
             player.currentJumps++;
         }
         printf("Jump State: %d", player.jumpstate);
-        printf("Treasure State: %d", treasure.hasCollided);
+        printf("Treasure State: %d", treasure.isopen);
         b2Vec2 bodyvel = body->GetLinearVelocity();
         float desiredvel = 0.0f;
         float VEL = 40;
