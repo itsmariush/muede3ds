@@ -1,0 +1,9 @@
+--atlas -f rgba8888 -z auto
+player.png
+bigpinkblock.png
+smallpinkblock.png
+pinkplatform.png
+princess.png
+mountain-bg.png
+treasure_closed.png
+treasure_open.png
