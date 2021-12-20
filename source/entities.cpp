@@ -44,6 +44,11 @@ Platform::Platform(float w, float h, Sprite s){
         sprites[i].height = s.height;
     }
 }
+Platform::~Platform()
+{
+    for(int i = 0; i < spritenum; i++) {
+    } 
+}
 void Platform::render(){
     b2Vec2 pos = body->GetPosition();
     for(int i =0;i<spritenum;i++) {
@@ -52,3 +57,4 @@ void Platform::render(){
     }
     //C2D_DrawRectSolid(pos.x, pos.y, 0.5, width*PIXEL_TO_METER, height, C2D_Color32f(1,0,0,1));
 }
+

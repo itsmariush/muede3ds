@@ -1,6 +1,7 @@
 #ifndef ENTITIES_H
 #define ENTITIES_H
 #include <string>
+#include <memory>
 
 #include <3ds.h>
 #include <box2d/box2d.h>
@@ -23,6 +24,7 @@ class Entity{
         std::string tag;
         virtual void startContact();
         virtual void endContact();
+        ~Entity(){}
 };
 
 class Sprite{
@@ -30,6 +32,7 @@ public:
     C2D_Sprite spr;
     float width;
     float height;
+    ~Sprite(){}
 };
 
 class Treasure : public Entity{
@@ -42,6 +45,7 @@ class Treasure : public Entity{
         void startContact();
         void endContact();
         void render();
+        ~Treasure(){}
 };
 
 class Platform : public Entity{
@@ -55,6 +59,7 @@ public:
     Platform();
     Platform(float w, float h, Sprite s);
     void render();
+    ~Platform();
 };
 
 class Player : public Entity{
@@ -68,5 +73,15 @@ public:
     int currentJumps =0;
     void startContact();
     void endContact();
+};
+
+class Level : public Entity{
+    public:
+        Sprite background;
+        float nextLevel[2];
+        int numplatforms = 5;
+        // TODO: add dynamic way
+        Platform platforms[5];
+        Treasure treasure;
 };
 #endif

@@ -39,10 +39,7 @@ class ContactListener : public b2ContactListener {
     }
 };
 
-const int NUM_PLATFORMS = 5;
-static Platform platforms[NUM_PLATFORMS];
 static Player player;
-static Treasure treasure;
 
 static C2D_SpriteSheet spritesheet;
 static Sprite bigpinkspr;
@@ -52,6 +49,7 @@ static Sprite mountainbgspr;
 static Sprite treasure_closed;
 static Sprite treasure_open;
 static Sprite heartspr;
+static Sprite arrowspr;
 static void initSprites() 
 {
     Player* p = &player;
@@ -75,6 +73,8 @@ static void initSprites()
     C2D_SpriteFromSheet(&treasure_open.spr, spritesheet, 7);
 
     C2D_SpriteFromSheet(&heartspr.spr, spritesheet, 8);
+    C2D_SpriteFromSheet(&arrowspr.spr, spritesheet, 9);
+    C2D_SpriteSetCenter(&arrowspr.spr, 0.2f,0.8f);
 }
 
 static void movesprites()
@@ -119,6 +119,45 @@ Treasure createTreasure(std::unique_ptr<b2World> &world, float x, float y)
     tres.tag = "treasure";
     return tres;
 }
+static Level level1;
+static Level level2;
+int createLevel1(std::unique_ptr<b2World> &world)
+{
+    level1.numplatforms = 5;
+    level1.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH, 16, bigpinkspr);
+    level1.platforms[1] = createPlatform(world, SCREEN_WIDTH/2-80, SCREEN_HEIGHT/2+25,18, 1, smallpinkspr);
+    level1.platforms[2] = createPlatform(world, SCREEN_WIDTH/2+80, SCREEN_HEIGHT/2+25,34, 1, smallpinkspr);
+    level1.platforms[3] = createPlatform(world, SCREEN_WIDTH/2, SCREEN_HEIGHT/2-25,26, 1, smallpinkspr);
+    level1.platforms[4] = createPlatform(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-60,48, 1, smallpinkspr);
+    level1.treasure = createTreasure(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-70);
+    float next[2] = {SCREEN_WIDTH/2+150, 45};
+    level1.nextLevel[0] = next[0];
+    level1.nextLevel[1] = next[1];
+
+    C2D_SpriteSetPos(&arrowspr.spr, next[0],next[1]);
+    return 0;
+}
+int createLevel2(std::unique_ptr<b2World> &world)
+{
+    level2.numplatforms = 1;
+    level2.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH, 16, bigpinkspr);
+    level2.treasure = createTreasure(world, SCREEN_WIDTH/2, SCREEN_HEIGHT-20);
+    float next[2] = {SCREEN_WIDTH/2+150, 45};
+    level2.nextLevel[0] = next[0];
+    level2.nextLevel[1] = next[1];
+
+    C2D_SpriteSetPos(&arrowspr.spr, next[0],next[1]);
+    return 0;
+}
+
+int resetLevel(std::unique_ptr<b2World> &world, Level l){
+    player.body->SetTransform(b2Vec2(10,0),player.body->GetAngle());
+    for(int i = 0; i < l.numplatforms; i++){
+        world->DestroyBody(l.platforms[i].body);
+    }
+    world->DestroyBody(l.treasure.body);
+    return 0;
+}
 
 int main(int argc, char** argv)
 {
@@ -143,12 +182,8 @@ int main(int argc, char** argv)
     ContactListener myContactListenerInstance;
     world->SetContactListener(&myContactListenerInstance);
     
-    platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH, 16, bigpinkspr);
-    platforms[1] = createPlatform(world, SCREEN_WIDTH/2-80, SCREEN_HEIGHT/2+25,18, 1, smallpinkspr);
-    platforms[2] = createPlatform(world, SCREEN_WIDTH/2+80, SCREEN_HEIGHT/2+25,34, 1, smallpinkspr);
-    platforms[3] = createPlatform(world, SCREEN_WIDTH/2, SCREEN_HEIGHT/2-25,26, 1, smallpinkspr);
-    platforms[4] = createPlatform(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-60,48, 1, smallpinkspr);
-    treasure = createTreasure(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-70);
+    createLevel1(world);
+    Level level = level1;
 
     // dynamic body
     b2BodyDef bodyDef;
@@ -174,7 +209,18 @@ int main(int argc, char** argv)
     while(aptMainLoop())
     {
         consoleClear();
-        
+    
+        b2Vec2 playerpos = body->GetPosition();
+        printf("\nLevel End: %f %f",level.nextLevel[0], level.nextLevel[1]);
+        printf("\nPlayer X: %f Y: %f", playerpos.x, playerpos.y);
+        if(playerpos.x >= level.nextLevel[0] && playerpos.y <= level.nextLevel[1]) {
+            printf("\nEnd level");
+            resetLevel(world,level);
+            createLevel2(world);
+            level = level2;
+            printf("\nWorld reset");
+        }
+
         hidScanInput();
         u32 kDown = hidKeysDown();
         u32 kHeld = hidKeysHeld();
@@ -197,7 +243,6 @@ int main(int argc, char** argv)
             player.currentJumps++;
         }
         printf("Jump State: %d", player.jumpstate);
-        printf("Treasure State: %d", treasure.isopen);
         b2Vec2 bodyvel = body->GetLinearVelocity();
         float desiredvel = 0.0f;
         float VEL = 40;
@@ -216,8 +261,8 @@ int main(int argc, char** argv)
         float impulse = body->GetMass() * velChange;
         body->ApplyLinearImpulse( b2Vec2(impulse,-jumpimpulse), body->GetWorldCenter(), true);
         
-        for (b2ContactEdge* edge = treasure.body->GetContactList(); edge; edge = edge->next) {
-            treasure.startContact();
+        for (b2ContactEdge* edge = level.treasure.body->GetContactList(); edge; edge = edge->next) {
+            level.treasure.startContact();
         }
         // Render scene clear to white
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
@@ -225,18 +270,19 @@ int main(int argc, char** argv)
         C2D_SceneBegin(bottom);
         // draw BG
         C2D_DrawSprite(&mountainbgspr.spr);
-
-        for(int i =0; i<NUM_PLATFORMS; i++){
-            Platform p = platforms[i];
+        C2D_DrawSprite(&arrowspr.spr);
+        for(int i =0; i<level.numplatforms; i++){
+            Platform p = level.platforms[i];
             p.render();
         }
-        treasure.render();
+        level.treasure.render();
         movesprites();
         C2D_DrawSprite(&player.sprite);
         //b2Vec2 bodypos = body->GetPosition();
         //C2D_DrawRectSolid(bodypos.x, bodypos.y, 0.5, 16, 18, C2D_Color32f(1,0,0,1));
         C3D_FrameEnd(0);
         world->Step(timeStep, velocityIter, positionIter);
+
     }
 
     // clean up
@@ -245,7 +291,5 @@ int main(int argc, char** argv)
     C2D_Fini();
 
     gfxExit();
-
-
     return 0;
 }
