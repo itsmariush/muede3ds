@@ -282,11 +282,11 @@ int main(int argc, char** argv)
 
         if(kDown & KEY_START) break;
         
-        if(kDown & KEY_CPAD_LEFT)
+        if(kDown & KEY_CPAD_LEFT || kDown & KEY_DLEFT)
             moveState = MS_LEFT;
-        if(kDown & KEY_CPAD_RIGHT)
+        if(kDown & KEY_CPAD_RIGHT || kDown & KEY_DRIGHT)
             moveState = MS_RIGHT;
-        if(kUp & KEY_CPAD_LEFT || kUp & KEY_CPAD_RIGHT)
+        if(kUp & KEY_CPAD_LEFT || kUp & KEY_CPAD_RIGHT || kUp & KEY_DLEFT || kUp & KEY_DRIGHT)
             moveState = MS_STOP;
 
         float jumpimpulse = 0;
