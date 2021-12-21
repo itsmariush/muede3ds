@@ -79,9 +79,9 @@ class Level : public Entity{
     public:
         Sprite background;
         float nextLevel[2];
-        int numplatforms = 5;
+        int numplatforms = 8;
         // TODO: add dynamic way
-        Platform platforms[5];
+        Platform platforms[8];
         Treasure treasure;
 };
 #endif

@@ -50,6 +50,10 @@ static Sprite treasure_closed;
 static Sprite treasure_open;
 static Sprite heartspr;
 static Sprite arrowspr;
+static Sprite waterblockspr;
+static Sprite bigsandblockspr;
+static Sprite smallsandblockspr;
+static Sprite springbgspr;
 static void initSprites() 
 {
     Player* p = &player;
@@ -75,6 +79,19 @@ static void initSprites()
     C2D_SpriteFromSheet(&heartspr.spr, spritesheet, 8);
     C2D_SpriteFromSheet(&arrowspr.spr, spritesheet, 9);
     C2D_SpriteSetCenter(&arrowspr.spr, 0.2f,0.8f);
+    
+    C2D_SpriteFromSheet(&springbgspr.spr, spritesheet , 10);
+    C2D_SpriteFromSheet(&bigsandblockspr.spr, spritesheet, 11);
+    C2D_SpriteSetCenter(&bigsandblockspr.spr, 0.0f,1.0f);
+    bigsandblockspr.width=48;
+    bigsandblockspr.height=16;
+    C2D_SpriteFromSheet(&smallsandblockspr.spr, spritesheet, 12);
+    smallsandblockspr.width=16;
+    smallsandblockspr.height=16;
+    C2D_SpriteFromSheet(&waterblockspr.spr, spritesheet, 13);
+    C2D_SpriteSetCenter(&waterblockspr.spr, 0.0f,1.0f);
+    waterblockspr.width=48;
+    waterblockspr.height=16;
 }
 
 static void movesprites()
@@ -123,11 +140,12 @@ static Level level1;
 static Level level2;
 int createLevel1(std::unique_ptr<b2World> &world)
 {
+    level1.background = mountainbgspr;
     level1.numplatforms = 5;
     level1.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH, 16, bigpinkspr);
-    level1.platforms[1] = createPlatform(world, SCREEN_WIDTH/2-80, SCREEN_HEIGHT/2+25,18, 1, smallpinkspr);
-    level1.platforms[2] = createPlatform(world, SCREEN_WIDTH/2+80, SCREEN_HEIGHT/2+25,34, 1, smallpinkspr);
-    level1.platforms[3] = createPlatform(world, SCREEN_WIDTH/2, SCREEN_HEIGHT/2-25,26, 1, smallpinkspr);
+    level1.platforms[1] = createPlatform(world, SCREEN_WIDTH/2-80, SCREEN_HEIGHT/2+25,16, 1, smallpinkspr);
+    level1.platforms[2] = createPlatform(world, SCREEN_WIDTH/2+80, SCREEN_HEIGHT/2+25,32, 1, smallpinkspr);
+    level1.platforms[3] = createPlatform(world, SCREEN_WIDTH/2, SCREEN_HEIGHT/2-25,32, 1, smallpinkspr);
     level1.platforms[4] = createPlatform(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-60,48, 1, smallpinkspr);
     level1.treasure = createTreasure(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-70);
     float next[2] = {SCREEN_WIDTH/2+150, 45};
@@ -139,9 +157,14 @@ int createLevel1(std::unique_ptr<b2World> &world)
 }
 int createLevel2(std::unique_ptr<b2World> &world)
 {
-    level2.numplatforms = 1;
-    level2.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH, 16, bigpinkspr);
-    level2.treasure = createTreasure(world, SCREEN_WIDTH/2, SCREEN_HEIGHT-20);
+    level2.background = springbgspr;
+    level2.numplatforms = 5;
+    level2.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH/2, 16, bigsandblockspr);
+    level2.platforms[1] = createPlatform(world, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_WIDTH/2, 16, waterblockspr);
+    level2.platforms[2] = createPlatform(world, 16, SCREEN_HEIGHT-80, 32, 1, smallsandblockspr);
+    level2.platforms[3] = createPlatform(world, 120, SCREEN_HEIGHT-160, 16, 1, smallsandblockspr);
+    level2.platforms[4] = createPlatform(world, 300, SCREEN_HEIGHT-180, 48, 1, smallsandblockspr);
+    level2.treasure = createTreasure(world, 120, SCREEN_HEIGHT-170);
     float next[2] = {SCREEN_WIDTH/2+150, 45};
     level2.nextLevel[0] = next[0];
     level2.nextLevel[1] = next[1];
@@ -149,9 +172,8 @@ int createLevel2(std::unique_ptr<b2World> &world)
     C2D_SpriteSetPos(&arrowspr.spr, next[0],next[1]);
     return 0;
 }
-
 int resetLevel(std::unique_ptr<b2World> &world, Level l){
-    player.body->SetTransform(b2Vec2(10,0),player.body->GetAngle());
+    player.body->SetTransform(b2Vec2(10,SCREEN_HEIGHT-60),player.body->GetAngle());
     for(int i = 0; i < l.numplatforms; i++){
         world->DestroyBody(l.platforms[i].body);
     }
@@ -182,8 +204,8 @@ int main(int argc, char** argv)
     ContactListener myContactListenerInstance;
     world->SetContactListener(&myContactListenerInstance);
     
-    createLevel1(world);
-    Level level = level1;
+    createLevel2(world);
+    Level level = level2;
 
     // dynamic body
     b2BodyDef bodyDef;
@@ -269,7 +291,7 @@ int main(int argc, char** argv)
         C2D_TargetClear(bottom, C2D_Color32f(1,1,1,1));
         C2D_SceneBegin(bottom);
         // draw BG
-        C2D_DrawSprite(&mountainbgspr.spr);
+        C2D_DrawSprite(&level.background.spr);
         C2D_DrawSprite(&arrowspr.spr);
         for(int i =0; i<level.numplatforms; i++){
             Platform p = level.platforms[i];
