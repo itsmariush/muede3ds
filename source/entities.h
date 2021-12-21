@@ -77,11 +77,13 @@ public:
 
 class Level : public Entity{
     public:
+        Level *next;
+        void (*createNext)(std::unique_ptr<b2World>&);
         Sprite background;
         float nextLevel[2];
-        int numplatforms = 8;
+        int numplatforms = 6;
         // TODO: add dynamic way
-        Platform platforms[8];
+        Platform platforms[6];
         Treasure treasure;
 };
 #endif

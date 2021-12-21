@@ -136,27 +136,16 @@ Treasure createTreasure(std::unique_ptr<b2World> &world, float x, float y)
     tres.tag = "treasure";
     return tres;
 }
+std::string LEVEL;
 static Level level1;
 static Level level2;
-int createLevel1(std::unique_ptr<b2World> &world)
+void createLevel1(std::unique_ptr<b2World> &world);
+void createLevel2(std::unique_ptr<b2World> &world)
 {
-    level1.background = mountainbgspr;
-    level1.numplatforms = 5;
-    level1.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH, 16, bigpinkspr);
-    level1.platforms[1] = createPlatform(world, SCREEN_WIDTH/2-80, SCREEN_HEIGHT/2+25,16, 1, smallpinkspr);
-    level1.platforms[2] = createPlatform(world, SCREEN_WIDTH/2+80, SCREEN_HEIGHT/2+25,32, 1, smallpinkspr);
-    level1.platforms[3] = createPlatform(world, SCREEN_WIDTH/2, SCREEN_HEIGHT/2-25,32, 1, smallpinkspr);
-    level1.platforms[4] = createPlatform(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-60,48, 1, smallpinkspr);
-    level1.treasure = createTreasure(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-70);
-    float next[2] = {SCREEN_WIDTH/2+150, 45};
-    level1.nextLevel[0] = next[0];
-    level1.nextLevel[1] = next[1];
-
-    C2D_SpriteSetPos(&arrowspr.spr, next[0],next[1]);
-    return 0;
-}
-int createLevel2(std::unique_ptr<b2World> &world)
-{
+    LEVEL = "Level2";
+    printf("Create level2");
+    level2.next = &level1;
+    level2.createNext= &createLevel1;
     level2.background = springbgspr;
     level2.numplatforms = 5;
     level2.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH/2, 16, bigsandblockspr);
@@ -170,7 +159,26 @@ int createLevel2(std::unique_ptr<b2World> &world)
     level2.nextLevel[1] = next[1];
 
     C2D_SpriteSetPos(&arrowspr.spr, next[0],next[1]);
-    return 0;
+}
+void createLevel1(std::unique_ptr<b2World> &world)
+{
+    LEVEL="Level1";
+    printf("Create level1");
+    level1.next = &level2;
+    level1.createNext= &createLevel2;
+    level1.background = mountainbgspr;
+    level1.numplatforms = 5;
+    level1.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH, 16, bigpinkspr);
+    level1.platforms[1] = createPlatform(world, SCREEN_WIDTH/2-80, SCREEN_HEIGHT/2+25,16, 1, smallpinkspr);
+    level1.platforms[2] = createPlatform(world, SCREEN_WIDTH/2+80, SCREEN_HEIGHT/2+25,32, 1, smallpinkspr);
+    level1.platforms[3] = createPlatform(world, SCREEN_WIDTH/2, SCREEN_HEIGHT/2-25,32, 1, smallpinkspr);
+    level1.platforms[4] = createPlatform(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-60,48, 1, smallpinkspr);
+    level1.treasure = createTreasure(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-70);
+    float next[2] = {SCREEN_WIDTH/2+150, 45};
+    level1.nextLevel[0] = next[0];
+    level1.nextLevel[1] = next[1];
+
+    C2D_SpriteSetPos(&arrowspr.spr, next[0],next[1]);
 }
 int resetLevel(std::unique_ptr<b2World> &world, Level l){
     player.body->SetTransform(b2Vec2(10,SCREEN_HEIGHT-60),player.body->GetAngle());
@@ -204,8 +212,8 @@ int main(int argc, char** argv)
     ContactListener myContactListenerInstance;
     world->SetContactListener(&myContactListenerInstance);
     
-    createLevel2(world);
-    Level level = level2;
+    createLevel1(world);
+    Level level = level1;
 
     // dynamic body
     b2BodyDef bodyDef;
@@ -231,15 +239,16 @@ int main(int argc, char** argv)
     while(aptMainLoop())
     {
         consoleClear();
-    
+        
+        printf(LEVEL.c_str());
         b2Vec2 playerpos = body->GetPosition();
         printf("\nLevel End: %f %f",level.nextLevel[0], level.nextLevel[1]);
         printf("\nPlayer X: %f Y: %f", playerpos.x, playerpos.y);
         if(playerpos.x >= level.nextLevel[0] && playerpos.y <= level.nextLevel[1]) {
             printf("\nEnd level");
             resetLevel(world,level);
-            createLevel2(world);
-            level = level2;
+            level.createNext(world);
+            level = *level.next;
             printf("\nWorld reset");
         }
 
