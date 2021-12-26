@@ -54,11 +54,14 @@ static Sprite waterblockspr;
 static Sprite bigsandblockspr;
 static Sprite smallsandblockspr;
 static Sprite springbgspr;
+static Sprite start_screen;
+static Sprite press_start;
 static void initSprites() 
 {
     Player* p = &player;
     C2D_SpriteFromSheet(&p->sprite, spritesheet, 4);
-    C2D_SpriteSetCenter(&p->sprite, -0.3f,0.3f);
+    //C2D_SpriteSetCenter(&p->sprite, -0.3f,0.3f);
+    C2D_SpriteSetCenter(&p->sprite, 0,0.5f);
 
     C2D_SpriteFromSheet(&bigpinkspr.spr, spritesheet, 1);
     C2D_SpriteSetCenter(&bigpinkspr.spr, -1.0f,0.35f);
@@ -92,6 +95,9 @@ static void initSprites()
     C2D_SpriteSetCenter(&waterblockspr.spr, 0.0f,1.0f);
     waterblockspr.width=48;
     waterblockspr.height=16;
+    
+    C2D_SpriteFromSheet(&start_screen.spr, spritesheet, 14);
+    C2D_SpriteFromSheet(&press_start.spr, spritesheet, 15);
 }
 
 static void movesprites()
@@ -137,6 +143,7 @@ Treasure createTreasure(std::unique_ptr<b2World> &world, float x, float y)
     return tres;
 }
 std::string LEVEL;
+static Level level0;
 static Level level1;
 static Level level2;
 void createLevel1(std::unique_ptr<b2World> &world);
@@ -149,10 +156,10 @@ void createLevel2(std::unique_ptr<b2World> &world)
     level2.background = springbgspr;
     level2.numplatforms = 5;
     level2.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH/2, 16, bigsandblockspr);
-    level2.platforms[1] = createPlatform(world, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_WIDTH/2, 16, waterblockspr);
-    level2.platforms[2] = createPlatform(world, 16, SCREEN_HEIGHT-80, 32, 1, smallsandblockspr);
-    level2.platforms[3] = createPlatform(world, 120, SCREEN_HEIGHT-160, 16, 1, smallsandblockspr);
-    level2.platforms[4] = createPlatform(world, 300, SCREEN_HEIGHT-180, 48, 1, smallsandblockspr);
+    level2.platforms[1] = createPlatform(world, SCREEN_WIDTH-32, SCREEN_HEIGHT, SCREEN_WIDTH/2, 16, waterblockspr);
+    level2.platforms[2] = createPlatform(world, 16, SCREEN_HEIGHT-80, 32, 8, smallsandblockspr);
+    level2.platforms[3] = createPlatform(world, 120, SCREEN_HEIGHT-160, 16, 8, smallsandblockspr);
+    level2.platforms[4] = createPlatform(world, 300, SCREEN_HEIGHT-180, 48, 8, smallsandblockspr);
     level2.treasure = createTreasure(world, 120, SCREEN_HEIGHT-170);
     float next[2] = {SCREEN_WIDTH/2+150, 45};
     level2.nextLevel[0] = next[0];
@@ -163,21 +170,35 @@ void createLevel2(std::unique_ptr<b2World> &world)
 void createLevel1(std::unique_ptr<b2World> &world)
 {
     LEVEL="Level1";
-    printf("Create level1");
     level1.next = &level2;
     level1.createNext= &createLevel2;
     level1.background = mountainbgspr;
     level1.numplatforms = 5;
-    level1.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH, 16, bigpinkspr);
-    level1.platforms[1] = createPlatform(world, SCREEN_WIDTH/2-80, SCREEN_HEIGHT/2+25,16, 1, smallpinkspr);
-    level1.platforms[2] = createPlatform(world, SCREEN_WIDTH/2+80, SCREEN_HEIGHT/2+25,32, 1, smallpinkspr);
-    level1.platforms[3] = createPlatform(world, SCREEN_WIDTH/2, SCREEN_HEIGHT/2-25,32, 1, smallpinkspr);
-    level1.platforms[4] = createPlatform(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-60,48, 1, smallpinkspr);
+    level1.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH, 20, bigpinkspr);
+    level1.platforms[1] = createPlatform(world, SCREEN_WIDTH/2-80, SCREEN_HEIGHT/2+25,16, 10, smallpinkspr);
+    level1.platforms[2] = createPlatform(world, SCREEN_WIDTH/2+80, SCREEN_HEIGHT/2+25,32, 10, smallpinkspr);
+    level1.platforms[3] = createPlatform(world, SCREEN_WIDTH/2, SCREEN_HEIGHT/2-25,32, 10, smallpinkspr);
+    level1.platforms[4] = createPlatform(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-60,48, 10, smallpinkspr);
     level1.treasure = createTreasure(world, SCREEN_WIDTH/2+130, SCREEN_HEIGHT/2-70);
     float next[2] = {SCREEN_WIDTH/2+150, 45};
     level1.nextLevel[0] = next[0];
     level1.nextLevel[1] = next[1];
 
+    C2D_SpriteSetPos(&arrowspr.spr, next[0],next[1]);
+}
+void createLevel0(std::unique_ptr<b2World> &world)
+{
+    LEVEL = "Level0";
+    level0.background = start_screen;
+    level0.next = &level1;
+    level0.createNext = &createLevel1;
+    level0.numplatforms = 0;
+    level0.treasure = createTreasure(world, 0,0);
+    float next[2] = {-10, -10};
+    level0.nextLevel[0] = next[0];
+    level0.nextLevel[1] = next[1];
+
+    C2D_SpriteSetPos(&press_start.spr, SCREEN_WIDTH/2-100, SCREEN_HEIGHT/2);
     C2D_SpriteSetPos(&arrowspr.spr, next[0],next[1]);
 }
 int resetLevel(std::unique_ptr<b2World> &world, Level l){
@@ -199,7 +220,8 @@ int main(int argc, char** argv)
     C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
     C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
     C2D_Prepare();
-    C3D_RenderTarget* bottom = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
+    C3D_RenderTarget* top = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
+    C3D_RenderTarget* bottom = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
 
 	spritesheet = C2D_SpriteSheetLoad("romfs:/gfx/sprites.t3x");
 	if (!spritesheet) svcBreak(USERBREAK_PANIC);
@@ -212,8 +234,8 @@ int main(int argc, char** argv)
     ContactListener myContactListenerInstance;
     world->SetContactListener(&myContactListenerInstance);
     
-    createLevel1(world);
-    Level level = level1;
+    createLevel0(world);
+    Level level = level0;
 
     // dynamic body
     b2BodyDef bodyDef;
@@ -221,7 +243,7 @@ int main(int argc, char** argv)
     bodyDef.position.Set(10, 0.0f);
     b2Body* body = world->CreateBody(&bodyDef);
     b2PolygonShape dynamicBox;
-    dynamicBox.SetAsBox(16.0f, 16.0f);
+    dynamicBox.SetAsBox(4.0f, 16.0f);
     b2FixtureDef fixtureDef;
     fixtureDef.shape = &dynamicBox;
     fixtureDef.density = 1.0f;
@@ -236,6 +258,7 @@ int main(int argc, char** argv)
     int32_t velocityIter = 6;
     int32_t positionIter = 2;
     consoleInit(GFX_BOTTOM, NULL);
+    int framenum = 0;
     while(aptMainLoop())
     {
         consoleClear();
@@ -259,12 +282,19 @@ int main(int argc, char** argv)
 
         if(kDown & KEY_START) break;
         
-        if(kDown & KEY_CPAD_LEFT || kDown & KEY_DLEFT)
+        if(kDown & KEY_CPAD_LEFT || kDown & KEY_DLEFT) {
+            player.lastMove = moveState;
+            C2D_SpriteSetScale(&player.sprite, 1,1);
             moveState = MS_LEFT;
-        if(kDown & KEY_CPAD_RIGHT || kDown & KEY_DRIGHT)
+        }
+        if(kDown & KEY_CPAD_RIGHT || kDown & KEY_DRIGHT){
+            player.lastMove = moveState;
+            C2D_SpriteSetScale(&player.sprite, -1,1);
             moveState = MS_RIGHT;
-        if(kUp & KEY_CPAD_LEFT || kUp & KEY_CPAD_RIGHT || kUp & KEY_DLEFT || kUp & KEY_DRIGHT)
+        }
+        if(kUp & KEY_CPAD_LEFT || kUp & KEY_CPAD_RIGHT || kUp & KEY_DLEFT || kUp & KEY_DRIGHT){
             moveState = MS_STOP;
+        }
 
         float jumpimpulse = 0;
         float jumpvel = 300;
@@ -272,8 +302,14 @@ int main(int argc, char** argv)
             jumpimpulse = body->GetMass() * jumpvel; // f= m*v
             player.jumpstate = JS_JUMP;
             player.currentJumps++;
+
+            if(LEVEL.compare("Level0") == 0){
+                resetLevel(world,level);
+                level.createNext(world);
+                level = *level.next;
+            }
         }
-        printf("Jump State: %d", player.jumpstate);
+
         b2Vec2 bodyvel = body->GetLinearVelocity();
         float desiredvel = 0.0f;
         float VEL = 40;
@@ -285,7 +321,8 @@ int main(int argc, char** argv)
                             if(player.jumpstate == JS_GROUND)
                                 desiredvel = bodyvel.x * 0.98f; 
                         break;
-            case MS_RIGHT: desiredvel= b2Min( bodyvel.x + ACCEL, VEL); break;
+            case MS_RIGHT:  desiredvel= b2Min( bodyvel.x + ACCEL, VEL);
+                           break;
             default: break;
         }
         float velChange = desiredvel - bodyvel.x;
@@ -297,8 +334,8 @@ int main(int argc, char** argv)
         }
         // Render scene clear to white
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-        C2D_TargetClear(bottom, C2D_Color32f(1,1,1,1));
-        C2D_SceneBegin(bottom);
+        C2D_TargetClear(top, C2D_Color32f(1,1,1,1));
+        C2D_SceneBegin(top);
         // draw BG
         C2D_DrawSprite(&level.background.spr);
         C2D_DrawSprite(&arrowspr.spr);
@@ -306,21 +343,32 @@ int main(int argc, char** argv)
             Platform p = level.platforms[i];
             p.render();
         }
-        level.treasure.render();
-        movesprites();
-        C2D_DrawSprite(&player.sprite);
+        if(LEVEL.compare("Level0") == 0) {
+            framenum++;
+            if(!(framenum % 40 < 10))
+                C2D_DrawSprite(&press_start.spr);
+        } else { 
+            level.treasure.render();
+            movesprites();
+            C2D_DrawSprite(&player.sprite);
+        }
         //b2Vec2 bodypos = body->GetPosition();
-        //C2D_DrawRectSolid(bodypos.x, bodypos.y, 0.5, 16, 18, C2D_Color32f(1,0,0,1));
+        //C2D_DrawRectSolid(bodypos.x-8, bodypos.y-16, 0.5, 16, 32, C2D_Color32f(1,0,0,1));
+        
+        // Draw Bottom screen
+        C2D_TargetClear(bottom, C2D_Color32f(0.5,0,0,1));
+        C2D_SceneBegin(bottom);
+        
         C3D_FrameEnd(0);
+
         world->Step(timeStep, velocityIter, positionIter);
 
     }
-
     // clean up
     cfguExit();
     C2D_Fini();
     C2D_Fini();
-
+    romfsExit();
     gfxExit();
     return 0;
 }

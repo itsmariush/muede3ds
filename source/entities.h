@@ -65,6 +65,7 @@ public:
 class Player : public Entity{
 public:
     _jumpState jumpstate;
+    _moveState lastMove;
     float width;
     float height;
     b2Body* body;

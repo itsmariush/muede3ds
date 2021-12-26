@@ -37,7 +37,7 @@ Platform::Platform(){}
 Platform::Platform(float w, float h, Sprite s){ 
     width = w;
     height=h;
-    spritenum = ceil(width*PIXEL_TO_METER/s.width)+1;
+    spritenum = ceil(width*PIXEL_TO_METER/s.width);
     for(int i=0; i<spritenum;i++) {
         memcpy(&sprites[i].spr, &s.spr, sizeof(C2D_Sprite));
         sprites[i].width = s.width;
