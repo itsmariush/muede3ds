@@ -56,6 +56,8 @@ static Sprite smallsandblockspr;
 static Sprite springbgspr;
 static Sprite start_screen;
 static Sprite press_start;
+static Sprite bedspr;
+static Sprite winspr;
 static void initSprites() 
 {
     Player* p = &player;
@@ -98,6 +100,13 @@ static void initSprites()
     
     C2D_SpriteFromSheet(&start_screen.spr, spritesheet, 14);
     C2D_SpriteFromSheet(&press_start.spr, spritesheet, 15);
+    
+    C2D_SpriteFromSheet(&bedspr.spr, spritesheet, 16);
+    C2D_SpriteSetCenter(&bedspr.spr, 0.0f,0.5f);
+    bedspr.width = 96;
+    bedspr.height = 36;
+
+    C2D_SpriteFromSheet(&winspr.spr, spritesheet, 17);
 }
 
 static void movesprites()
@@ -146,13 +155,42 @@ std::string LEVEL;
 static Level level0;
 static Level level1;
 static Level level2;
-void createLevel1(std::unique_ptr<b2World> &world);
+static Level level3;
+static Level levelEnd;
+void createLevelEnd(std::unique_ptr<b2World> &world)
+{
+    LEVEL = "LevelEnd";
+    levelEnd.background = start_screen;
+    levelEnd.numplatforms = 0;
+    levelEnd.treasure = createTreasure(world, -20,-20);
+    float next[2] = {-10, -10};
+    levelEnd.nextLevel[0] = next[0];
+    levelEnd.nextLevel[1] = next[1];
+
+    C2D_SpriteSetPos(&winspr.spr, SCREEN_WIDTH/2-100, SCREEN_HEIGHT/2);
+    C2D_SpriteSetPos(&arrowspr.spr, next[0],next[1]);
+}
+void createLevel3(std::unique_ptr<b2World> &world) 
+{
+    LEVEL = "Level3";
+    level3.next= &levelEnd;
+    level3.createNext = &createLevelEnd;
+    level3.background = mountainbgspr;
+    level3.numplatforms = 2;
+    level3.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH, 20, bigpinkspr);
+    level3.platforms[1] = createPlatform(world, SCREEN_WIDTH/2+100, SCREEN_HEIGHT-32, 48, 6, bedspr);
+    level3.treasure = createTreasure(world, 160, SCREEN_HEIGHT-20);
+    
+    float next[2] = {SCREEN_WIDTH/2+150, SCREEN_HEIGHT+100};
+    level3.nextLevel[0] = next[0];
+    level3.nextLevel[1] = next[1];
+    C2D_SpriteSetPos(&arrowspr.spr, next[0],SCREEN_HEIGHT-48);
+}
 void createLevel2(std::unique_ptr<b2World> &world)
 {
     LEVEL = "Level2";
-    printf("Create level2");
-    level2.next = &level1;
-    level2.createNext= &createLevel1;
+    level2.next = &level3;
+    level2.createNext= &createLevel3;
     level2.background = springbgspr;
     level2.numplatforms = 5;
     level2.platforms[0] = createPlatform(world, 0.0f, SCREEN_HEIGHT, SCREEN_WIDTH/2, 16, bigsandblockspr);
@@ -343,10 +381,14 @@ int main(int argc, char** argv)
             Platform p = level.platforms[i];
             p.render();
         }
-        if(LEVEL.compare("Level0") == 0) {
+        if(LEVEL.compare("Level0") == 0 || LEVEL.compare("LevelEnd") == 0) {
             framenum++;
-            if(!(framenum % 40 < 10))
-                C2D_DrawSprite(&press_start.spr);
+            if(!(framenum % 40 < 10)) {
+                if(level.createNext == &createLevel1)
+                    C2D_DrawSprite(&press_start.spr);
+                else 
+                    C2D_DrawSprite(&winspr.spr);
+            }
         } else { 
             level.treasure.render();
             movesprites();
